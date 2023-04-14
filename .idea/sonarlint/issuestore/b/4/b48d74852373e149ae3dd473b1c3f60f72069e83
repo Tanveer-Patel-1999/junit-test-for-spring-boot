@@ -1,0 +1,8 @@
+
+h
+java:S11921"RDefine a constant instead of duplicating this literal "Person not found:" 3 times.(•·‚Ü
+N	java:S1063"9Replace this use of System.out or System.err by a logger.(œ•é‹
+V
+java:S1854E"@Remove this useless assignment to local variable "personEntity".(•·‚Ü
+G
+java:S1481E"1Remove this unused "personEntity" local variable.(•·‚Ü

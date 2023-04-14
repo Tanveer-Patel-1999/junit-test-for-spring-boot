@@ -77,14 +77,54 @@ public class ConsumerClientTest {
     }
 
     @Test
+    public void testCreateSite_badRequest() {
+        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
+
+            Mockito.when(restTemplate.exchange(Mockito.anyString(),
+                            Mockito.eq(HttpMethod.POST),
+                            Mockito.any(HttpEntity.class),
+                            Mockito.eq(PersonResponse.class)))
+                    .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
+
+            PersonResponse response = sut.createPerson(person);
+            Mockito.verify(restTemplate, Mockito.times(1)).exchange(Mockito.any(String.class),
+                    Mockito.eq(HttpMethod.POST),
+                    Mockito.any(HttpEntity.class),
+                    Mockito.eq(PersonResponse.class));
+            assertNotNull(response);
+        });
+        Assertions.assertEquals("Person name is already exist", thrown.getMessage());
+    }
+
+    @Test
+    public void testCreateSite_InternalServer() {
+        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
+
+            Mockito.when(restTemplate.exchange(Mockito.anyString(),
+                            Mockito.eq(HttpMethod.POST),
+                            Mockito.any(HttpEntity.class),
+                            Mockito.eq(PersonResponse.class)))
+                    .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+
+            PersonResponse response = sut.createPerson(person);
+            Mockito.verify(restTemplate, Mockito.times(1)).exchange(Mockito.any(String.class),
+                    Mockito.eq(HttpMethod.POST),
+                    Mockito.any(HttpEntity.class),
+                    Mockito.eq(PersonResponse.class));
+            assertNotNull(response);
+        });
+        Assertions.assertEquals("Error when trying to create person with personName = Tanveer", thrown.getMessage());
+    }
+
+    @Test
     public void testGetPersonRestByIdTest() {
 
         when(restTemplate.getForObject(anyString(), Mockito.eq(Person.class), Mockito.anyLong()))
                 .thenReturn(new Person());
         sut.getPersonBYId(1L);
 //      Mockito.verify(restTemplate, Mockito.times(1)).getForObject(anyString(), Mockito.eq(Person.class), Mockito.anyLong());
-        ArgumentCaptor<Long> argumentCaptor = ArgumentCaptor.forClass(Long.class);
 
+        ArgumentCaptor<Long> argumentCaptor = ArgumentCaptor.forClass(Long.class);
         Mockito.verify(restTemplate, Mockito.times(1)).getForObject(anyString(), Mockito.eq(Person.class), argumentCaptor.capture());
         Long actualValue = argumentCaptor.getValue();
         assertEquals(1L, actualValue);
@@ -96,6 +136,41 @@ public class ConsumerClientTest {
         assertEquals(1L, person.getId());
         assertEquals("A", person.getAddress().getAddress1());
         assertEquals("B", person.getAddress().getAddress2());
+    }
+
+    @Test
+    public void ConsumerClientException_badRequest() {
+        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
+            when(restTemplate.getForObject(anyString(), Mockito.eq(Person.class), Mockito.anyLong()))
+                    .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
+            sut.getPersonBYId(1L);
+
+            ArgumentCaptor<Long> argumentCaptor = ArgumentCaptor.forClass(Long.class);
+            Mockito.verify(restTemplate, Mockito.times(1)).getForObject(anyString(),
+                    Mockito.eq(Person.class), argumentCaptor.capture());
+            Long id = argumentCaptor.getValue();
+            assertEquals(1L,id);
+        });
+        Assertions.assertEquals("Error when trying to retrieve person for personId= 1", thrown.getMessage());
+
+    }
+
+    @Test
+    public void ConsumerClientException_InternalServerError() {
+        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
+            when(restTemplate.getForObject(anyString(), Mockito.eq(Person.class), Mockito.anyLong()))
+                    .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+            sut.getPersonBYId(1L);
+
+            ArgumentCaptor<Long> argumentCaptor = ArgumentCaptor.forClass(Long.class);
+            Mockito.verify(restTemplate, Mockito.times(1))
+                    .getForObject(anyString(),
+                            Mockito.eq(Person.class),
+                            argumentCaptor.capture());
+            Long id = argumentCaptor.getValue();
+            assertEquals(1L,id);
+        });
+        Assertions.assertEquals("Error when trying to retrieve person for personId= 1", thrown.getMessage());
     }
 
     @Test
@@ -129,74 +204,6 @@ public class ConsumerClientTest {
 
     }
 
-    @Test
-    public void deletePersonRestByIDTest() {
-        Mockito.doNothing().when(restTemplate).delete(anyString());
-        sut.deleteById(1L);
-
-        verify(restTemplate, times(1)).delete(anyString());
-        ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
-        verify(restTemplate, times(1)).delete(argumentCaptor.capture());
-        String actualValue = argumentCaptor.getValue();
-        assertEquals("http://one-to-one/person/1", actualValue);
-
-    }
-
-    // exception test
-    @Test
-    public void ConsumerClientException_badRequest() {
-        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
-            when(restTemplate.getForObject(anyString(), Mockito.eq(Person.class), Mockito.anyLong()))
-                    .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
-            sut.getPersonBYId(1L);
-            Mockito.verify(restTemplate, Mockito.times(1)).getForObject(anyString(),
-                    Mockito.eq(Person.class), Mockito.anyLong());
-        });
-        Assertions.assertEquals("Error when trying to retrieve person for personId= 1", thrown.getMessage());
-
-    }
-
-    @Test
-    public void ConsumerClientException_InternalServerError() {
-        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
-            when(restTemplate.getForObject(anyString(), Mockito.eq(Person.class), Mockito.anyLong()))
-                    .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
-            sut.getPersonBYId(1L);
-            Mockito.verify(restTemplate, Mockito.times(1)).getForObject(anyString(), Mockito.eq(Person.class), Mockito.anyLong());
-        });
-        Assertions.assertEquals("Error when trying to retrieve person for personId= 1", thrown.getMessage());
-    }
-
-    @Test
-    public void deletePerson_clientError() {
-        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
-            doThrow(new HttpClientErrorException(HttpStatus.METHOD_NOT_ALLOWED, "Method Not Allowed"))
-                    .when(restTemplate).delete(Mockito.anyString());
-            sut.deleteById(1L);
-            verify(restTemplate, Mockito.times(1)).delete(Mockito.anyString());
-        });
-        Assertions.assertEquals("Unable to delete Person for PersonId=1", thrown.getMessage());
-    }
-
-    @Test
-    public void testCreateSite_badRequest() {
-        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
-
-            Mockito.when(restTemplate.exchange(Mockito.anyString(),
-                            Mockito.eq(HttpMethod.POST),
-                            Mockito.any(HttpEntity.class),
-                            Mockito.eq(PersonResponse.class)))
-                    .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
-
-            PersonResponse response = sut.createPerson(person);
-            Mockito.verify(restTemplate, Mockito.times(1)).exchange(Mockito.any(String.class),
-                    Mockito.eq(HttpMethod.POST),
-                    Mockito.any(HttpEntity.class),
-                    Mockito.eq(PersonResponse.class));
-            assertNotNull(response);
-        });
-        Assertions.assertEquals("Person name is already exist", thrown.getMessage());
-    }
 
     @Test
     public void update_exceptionInternal() {
@@ -233,4 +240,51 @@ public class ConsumerClientTest {
         });
         Assertions.assertEquals("Person id already exists.", thrown.getMessage());
     }
+
+    @Test
+    public void deletePersonRestByIDTest() {
+        Mockito.doNothing().when(restTemplate).delete(anyString());
+        sut.deleteById(1L);
+//        verify(restTemplate, times(1)).delete(anyString());
+        ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
+        verify(restTemplate, times(1)).delete(argumentCaptor.capture());
+        String actualValue = argumentCaptor.getValue();
+        assertEquals("http://one-to-one/person/1", actualValue);
+
+    }
+    @Test
+    public void deletePerson_clientError() {
+        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
+            doThrow(new HttpClientErrorException(HttpStatus.METHOD_NOT_ALLOWED, "Method Not Allowed"))
+                    .when(restTemplate).delete(Mockito.anyString());
+            sut.deleteById(1L);
+            verify(restTemplate, Mockito.times(1)).delete(Mockito.anyString());
+        });
+        Assertions.assertEquals("Unable to delete Person for PersonId=1", thrown.getMessage());
+    }
+
+    @Test
+    public void deletePerson_BadRequest() {
+        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
+            doThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR))
+                    .when(restTemplate).delete(Mockito.anyString());
+            sut.deleteById(1L);
+            verify(restTemplate, Mockito.times(1)).delete(Mockito.anyString());
+        });
+        Assertions.assertEquals("Unable to delete Person for PersonId=1", thrown.getMessage());
+    }
+
+    @Test
+    public void deletePerson_BadRequest1() {
+        ConsumerClientException thrown = Assertions.assertThrows(ConsumerClientException.class, () -> {
+            doThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST))
+                    .when(restTemplate).delete(Mockito.anyString());
+            sut.deleteById(1L);
+            verify(restTemplate, Mockito.times(1)).delete(Mockito.anyString());
+        });
+        Assertions.assertEquals("Unable to delete Person for PersonId=1", thrown.getMessage());
+    }
+
+
+
 }

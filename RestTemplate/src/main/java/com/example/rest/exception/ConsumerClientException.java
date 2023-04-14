@@ -4,19 +4,19 @@ public class ConsumerClientException extends RuntimeException{
 
     private static final long serialVersionUID = -7210431808899939306L;
 
-    public ConsumerClientException(String msg)
+    public ConsumerClientException(String message)
     {
-        super(msg);
+        super(message);
     }
 
 
-    public ConsumerClientException(String msg, Throwable cause)
+    public ConsumerClientException(String message, Throwable cause)
     {
-        super(msg,cause);
+        super(message,cause);
     }
 
-    public ConsumerClientException(Throwable cause)
-    {
+    public ConsumerClientException(Throwable cause) {
         super(cause);
     }
+
 }
